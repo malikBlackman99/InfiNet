@@ -1,4 +1,7 @@
-var users = [{ username: "xlia0", password: "pass123" }];
+var defaultUsers = [
+    { username: "xlia0", email: "xlia0@mail.com",password: "pass123" },
+    { username: "bob", email: "bob@mail.com", password: "bobpass" }
+];
     var currentUser = null;
     var nextId = 21;
 
@@ -44,7 +47,7 @@ var users = [{ username: "xlia0", password: "pass123" }];
         return url;
     }
 
-    var posts = [
+    var defaultPosts = [
         { id:1,  user:"_xlia0.o",       category:"travel",      text:"golden hour over the valley 🌿 #travel #photography",                 likes:24, liked:false, bookmarked:false, comments:["User143: Comment here!", "loveStay: Nah, comment there."], img: categoryImages.travel[0] },
         { id:6,  user:"travelwithkai",  category:"travel",      text:"found this hidden waterfall on a hike 🌊 worth every step",            likes:52, liked:false, bookmarked:false, comments:["nomad.co: where is this?!", "kai_world: Dominica!"],         img: categoryImages.travel[1] },
         { id:11, user:"roamingrita",    category:"travel",      text:"cobblestone streets and no wifi. living my best life 🧭",              likes:47, liked:false, bookmarked:false, comments:["wanderlust.k: dream trip"],                                   img: categoryImages.travel[2] },
@@ -67,6 +70,11 @@ var users = [{ username: "xlia0", password: "pass123" }];
         { id:19, user:"quietspace",     category:"lifestyle",   text:"no phone sunday was the reset I needed 📵 try it",                    likes:14, liked:false, bookmarked:false, comments:[],                                                            img: categoryImages.lifestyle[3] }
     ];
 
+    var users = JSON.parse(localStorage.getItem("inscape_users")) || defaultUsers;
+    var posts = JSON.parse(localStorage.getItem("inscape_posts")) || defaultPosts;
+    var currentUser = localStorage.getItem("inscape_current_user") || null;
+    var nextId = Number(localStorage.getItem("inscape_next_id")) || 21;
+
     imgIndexes = { travel: 0, food: 0, nature: 0, photography: 0, lifestyle: 0 };
 
     function show(id) { document.getElementById(id).classList.add('show'); }
@@ -75,17 +83,31 @@ var users = [{ username: "xlia0", password: "pass123" }];
 
     function swap(a, b) { hide(a); show(b); }
 
+    function saveData() {
+
+    localStorage.setItem("inscape_users", JSON.stringify(users));
+    localStorage.setItem("inscape_posts", JSON.stringify(posts));
+    localStorage.setItem("inscape_current_user", currentUser || "");
+    localStorage.setItem("inscape_next_id", String(nextId));
+
+    }
+
     function login() {
         var u = document.getElementById('loginUser').value.trim();
         var p = document.getElementById('loginPass').value;
         var match = null;
         for (var i = 0; i < users.length; i++) {
-            if (users[i].username === u && users[i].password === p) match = users[i];
+            var user = users[i];
+           if ((user.username === u || user.email === u) && user.password === p) {
+                 match = user;
+        }
         }
         if (match) {
             currentUser = match.username;
             hide('loginModal');
+            saveData();
             updateUI();
+            
         } else {
             document.getElementById('loginErr').style.display = 'block';
         }
@@ -100,10 +122,12 @@ var users = [{ username: "xlia0", password: "pass123" }];
         users.push({ username: u, password: p });
         currentUser = u;
         hide('registerModal');
+        saveData();
         updateUI();
+        
     }
 
-    function logout() { currentUser = null; updateUI(); } 
+    function logout() { currentUser = null;saveData(); updateUI(); } 
 
     function updateUI() {
         if (currentUser) {
@@ -132,7 +156,9 @@ var users = [{ username: "xlia0", password: "pass123" }];
         
         posts.unshift({ id: nextId++, user: currentUser, category: cat, text: text, likes: 0, liked: false, bookmarked: false, comments: [], img: nextImg(cat) });
         document.getElementById('newText').value = '';
+        saveData();
         renderFeed();
+            
     }
 
     function toggleLike(id) {
@@ -140,7 +166,9 @@ var users = [{ username: "xlia0", password: "pass123" }];
         for (var i = 0; i < posts.length; i++) {
             if (posts[i].id === id) { posts[i].liked = !posts[i].liked; posts[i].likes += posts[i].liked ? 1 : -1; }
         }
+        saveData();
         renderFeed();
+                
     }
 
     function toggleBookmark(id) {
@@ -148,7 +176,9 @@ var users = [{ username: "xlia0", password: "pass123" }];
         for (var i = 0; i < posts.length; i++) {
             if (posts[i].id === id) posts[i].bookmarked = !posts[i].bookmarked;
         }
+        saveData();
         renderFeed();
+            
     }
 
     function addComment(id) {
@@ -160,7 +190,9 @@ var users = [{ username: "xlia0", password: "pass123" }];
             if (posts[i].id === id) posts[i].comments.push(currentUser + ': ' + text);
         }
         input.value = '';
+        saveData();
         renderFeed();
+        
     }
 
     function renderFeed() {
