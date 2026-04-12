@@ -1,3 +1,36 @@
+// Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
+
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    addDoc,
+    updateDoc,
+    doc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAtC2Uic-02nAKkXlY-F3CPlKZNE--Wluw",
+    authDomain: "infinet-6ff36.firebaseapp.com",
+    projectId: "infinet-6ff36",
+    storageBucket: "infinet-6ff36.firebasestorage.app",
+    messagingSenderId: "1069205416365",
+    appId: "1:1069205416365:web:81411d9a9191272d30d924",
+    measurementId: "G-STJL0YDFQ4"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+
+
+
 var defaultUsers = [
     { username: "bob", email: "bob@mail.com", password: "bobpass" },
     { username: "xlia0", email: "xlia0@mail.com",password: "pass123" }
@@ -72,11 +105,18 @@ var defaultUsers = [
     ];
 
     var users = JSON.parse(localStorage.getItem("inscape_users")) || defaultUsers;
-    var posts = JSON.parse(localStorage.getItem("inscape_posts")) || defaultPosts;
+    var posts = [];
     var currentUser = localStorage.getItem("inscape_current_user") || null;
-    var nextId = Number(localStorage.getItem("inscape_next_id")) || 21;
+    var seededKey = "inscape_seeded_firebase";
 
     imgIndexes = { travel: 0, food: 0, nature: 0, photography: 0, lifestyle: 0 };
+
+    function nextImg(cat) {
+        const arr = categoryImages[cat];
+        const url = arr[imgIndexes[cat] % arr.length];
+        imgIndexes[cat]++;
+        return url;
+    }
 
     function show(id) { document.getElementById(id).classList.add('show'); }
 
@@ -87,9 +127,7 @@ var defaultUsers = [
     function saveData() {
 
     localStorage.setItem("inscape_users", JSON.stringify(users));
-    localStorage.setItem("inscape_posts", JSON.stringify(posts));
     localStorage.setItem("inscape_current_user", currentUser || "");
-    localStorage.setItem("inscape_next_id", String(nextId));
 
     }
 
@@ -115,12 +153,13 @@ var defaultUsers = [
     }
 
     function register() {
-        var u = document.getElementById('regUser').value.trim(); // 
+        var u = document.getElementById('regUser').value.trim(); 
+        var e = document.getElementById('regEmail').value.trim();
         var p = document.getElementById('regPass').value;
         var c = document.getElementById('regConfirm').value;
         if (p !== c) { document.getElementById('regErr').style.display = 'block'; return; }
-        if (!u) return;
-        users.push({ username: u, password: p });
+        if (!u || !e) return;
+        users.push({ username: u,email: e, password: p });
         currentUser = u;
         hide('registerModal');
         saveData();
@@ -150,47 +189,121 @@ var defaultUsers = [
         renderFeed();
     }
 
+    async function seedPostsIfNeeded() {
+        if (localStorage.getItem(seededKey) === "true") return;
+
+        const snapshot = await getDocs(collection(db, "posts"));
+       if (!snapshot.empty) {
+            localStorage.setItem(seededKey, "true");
+            return;
+        }
+
+       for (const post of defaultPosts) {
+            await addDoc(collection(db, "posts"), post);
+        }
+
+        localStorage.setItem(seededKey, "true");
+    }
+
+    async function loadPostsFromFirebase() {
+        const snapshot = await getDocs(collection(db, "posts"));
+        posts = [];
+
+       snapshot.forEach((docSnap) => {
+       posts.push({
+            id: docSnap.id,
+            ...docSnap.data()
+        });
+        });
+
+       renderFeed();
+    }
+
     function createPost() {
         var text = document.getElementById('newText').value.trim();
-        if (!text) return;
+        if (!text || !currentUser) return;
         var cat = document.getElementById('newCategory').value;
         
-        posts.unshift({ id: nextId++, user: currentUser, category: cat, text: text, likes: 0, liked: false, bookmarked: false, comments: [], img: nextImg(cat) });
+        var newPost ={ id: nextId++, user: currentUser, category: cat, text: text, likes: 0, liked: false, bookmarked: false, comments: [], img: nextImg(cat) };
+
+        var docRef = addDoc(collection(db, "posts"), newPost);  
+
+        posts.unshift({
+            id: docRef.id,
+            ...newPost
+        });
+
         document.getElementById('newText').value = '';
         saveData();
         renderFeed();
             
     }
 
-    function toggleLike(id) {
+    async function toggleLike(id) {
         if (!currentUser) { show('loginModal'); return; }
-        for (var i = 0; i < posts.length; i++) {
-            if (posts[i].id === id) { posts[i].liked = !posts[i].liked; posts[i].likes += posts[i].liked ? 1 : -1; }
+
+        var post = posts.find((item) => item.id === id);
+        if (!post) return;
+
+        post.likedBy = post.likedBy || [];
+        var index = post.likedBy.indexOf(currentUser);
+
+        if (index >= 0) {
+            post.likedBy.splice(index, 1);
+        } else {
+           post.likedBy.push(currentUser);
         }
+
+        post.likes = post.likedBy.length;
+
+
+        await updateDoc(doc(db, "posts", id), { likedBy: post.likedBy, likes: post.likes });   
+       
         saveData();
         renderFeed();
                 
-    }
+    };
 
-    function toggleBookmark(id) {
+    
+      
+
+
+
+    async function toggleBookmark(id) {
         if (!currentUser) { show('loginModal'); return; }
-        for (var i = 0; i < posts.length; i++) {
-            if (posts[i].id === id) posts[i].bookmarked = !posts[i].bookmarked;
+        const post = posts.find((item) => item.id === id);
+        if (!post) return;
+
+        post.bookmarkedBy = post.bookmarkedBy || [];
+        var index = post.bookmarkedBy.indexOf(currentUser);
+
+        if (index >= 0) {
+            post.bookmarkedBy.splice(index, 1);
+        } else {
+            post.bookmarkedBy.push(currentUser);
         }
+
+        await updateDoc(doc(db, "posts", id), { bookmarkedBy: post.bookmarkedBy});
         saveData();
         renderFeed();
             
-    }
+    };
 
-    function addComment(id) {
+    async function addComment(id) {
         if (!currentUser) { show('loginModal'); return; }
         var input = document.getElementById('ci-' + id);
         var text = input.value.trim();
         if (!text) return;
-        for (var i = 0; i < posts.length; i++) {
-            if (posts[i].id === id) posts[i].comments.push(currentUser + ': ' + text);
-        }
-        input.value = '';
+
+        const post = posts.find((item) => item.id === id);
+        if (!post) return;
+
+        post.comments = post.comments || [];
+        post.comments.push(currentUser + ": " + text);
+
+        await updateDoc(doc(db, "posts", id), {comments: post.comments });
+
+        input.value = "";
         saveData();
         renderFeed();
         
@@ -210,7 +323,13 @@ var defaultUsers = [
 
     function makeCard(p) {
         var initials = p.user.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase();
+        var comments = p.comments || [];;
+        var likedBy = post.likedBy || [];
+        var bookmarkedBy = post.bookmarkedBy || [];
+        var liked = currentUser ? likedBy.includes(currentUser) : false;
+        var bookmarked = currentUser ? bookmarkedBy.includes(currentUser) : false;
         var commentsHTML = '';
+
         
         for (var i = 0; i < p.comments.length; i++) {
             var parts = p.comments[i].split(': ');
@@ -248,5 +367,20 @@ var defaultUsers = [
         );
     }
 
-    renderFeed();
+    async function ensureUsersCollection() {
+        for (const user of users) {
+        await setDoc(doc(db, "users", user.username), user, { merge: true });
+        }
+    }
+
+    async function init() {
+        savelData();
+        updateUI();
+        
+        await ensureUsersCollection();
+        await seedPostsIfNeeded();
+        await loadPostsFromFirebase();
+    }
+
+init();
 

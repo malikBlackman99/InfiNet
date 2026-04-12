@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="./app.webmanifest">
+
+    <title>InScape</title>
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+
+<div class="navbar">
+    <div>
+        <h1>InScape</h1>
+        <p>Share your world, intentionally.</p>
+    </div>
+    <div id = "navArea">
+        <button onclick = "show('loginModal')">Login</button>
+        <button class = "btn-green" onclick = "show('registerModal')">Register</button>
+    </div>
+</div>
+
+<div class = "modal-bg" id = "loginModal">
+    <div class = "modal">
+        <button class = "modal-close" onclick = "hide('loginModal')">✕</button>
+        <h2>Welcome Back!</h2>
+        <p>Log into your account</p>
+        <input type = "text" id = "loginUser" placeholder = "username or email" />
+        <input type = "password" id = "loginPass" placeholder = "password" />
+        <div class = "error" id = "loginErr">Incorrect username or password.</div>
+        <button class = "submit-btn" style = "width: 100%" onclick = "login()">Login</button>
+        <p style = "text-align: center; margin-top: 12px; font-size: 12px; color: #888780">
+            No account? <span style = "color: #2E7D32; cursor: pointer; font-weight: bold" onclick="swap('loginModal','registerModal')">Register</span>
+        </p>
+    </div>
+</div>
+
+<div class = "modal-bg" id = "registerModal">
+    <div class = "modal">
+        <button class = "modal-close" onclick = "hide('registerModal')">✕</button>
+        <h2>Join InScape</h2>
+        <p>Create a New Account</p>
+        <input type = "text" id = "regUser" placeholder = "Username" /> 
+        <input type = "email" id = "regEmail" placeholder = "Email" />
+        <input type = "password" id = "regPass" placeholder = "password" />
+        <input type = "password" id = "regConfirm" placeholder = "confirm password" />
+        <div class = "error" id = "regErr">Passwords do not match.</div>
+        <button class = "submit-btn" style = "width: 100%" onclick = "register()">Create Account</button>
+        <p style = "text-align: center; margin-top: 12px; font-size: 12px; color: #888780">
+            Have an account? <span style = "color: #2E7D32; cursor: pointer; font-weight: bold" onclick="swap('registerModal','loginModal')">Log in</span>
+        </p>
+    </div>
+</div>
+
+<div class = "main">
+
+    <div class = "box" id = "guestMsg" style="text-align: center; color: #888780; font-size: 13px;">
+        👋 Browse freely —
+        <span style = "color: #2E7D32; cursor: pointer; font-weight: bold" onclick="show('loginModal')">Log in</span> or
+        
+        <span style = "color: #2E7D32; cursor: pointer; font-weight: bold" onclick="show('registerModal')">Register</span>
+        to post &amp; interact.
+    </div>
+
+    <div class = "box" id = "createBox" style = "display: none">
+        <b style = "color: #2E7D32; font-size: 14px;">✏️ New Post</b><br><br>
+        <select id="newCategory">
+            <option value = "travel">🌍 Travel</option>
+            <option value = "food">🍴 Food</option>
+            <option value = "photography">📷 Photography</option>
+            <option value = "nature">🌿 Nature</option>
+            <option value = "lifestyle">✨ Lifestyle</option> <!-- FIX 7: was </option — missing closing > -->
+        </select>
+        <textarea id = "newText" placeholder = "Share something intentional..."></textarea>
+        <button class = "submit-btn" onclick = "createPost()">Post</button>
+    </div>
+
+    <div class = "box" style = "display: flex; flex-wrap: wrap; gap: 14px; align-items: center">
+        <div>
+            <label style="font-size: 13px">🔍 Filter: </label>
+            <select id = "filterCat" style = "width:auto; margin: 0" onchange = "renderFeed()">
+                <option value = "all">All</option>
+                <option value = "travel">Travel</option>
+                <option value = "food">Food</option>
+                <option value = "photography">Photography</option>
+                <option value = "nature">Nature</option>
+                <option value = "lifestyle">Lifestyle</option>
+            </select>
+        </div>
+        <div class = "toggle-row">
+            <label class = "switch">
+                <input type = "checkbox" id = "limitToggle" onchange = "renderFeed()">
+                <span class = "slider"></span>
+            </label>
+            <label for = "limitToggle" style = "font-size: 13px">Limit Feed (10 posts)</label>
+        </div>
+    </div>
+
+    <div id = "feed"></div>
+
+    <div class = "limit-banner" id = "limitBanner">
+        <p>🌿 You've reached your limit!</p>
+        <small>Take a mindful break - come back when you're ready.</small>
+    </div>
+
+</div>
+
+<script type="module" src="main.js"></script>   
+</body>
+</html>
