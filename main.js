@@ -1,6 +1,7 @@
 var defaultUsers = [
-    { username: "xlia0", email: "xlia0@mail.com",password: "pass123" },
-    { username: "bob", email: "bob@mail.com", password: "bobpass" }
+    { username: "bob", email: "bob@mail.com", password: "bobpass" },
+    { username: "xlia0", email: "xlia0@mail.com",password: "pass123" }
+    
 ];
     var currentUser = null;
     var nextId = 21;
