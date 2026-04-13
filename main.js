@@ -362,7 +362,7 @@ var defaultUsers = [
             commentsHTML += '<div class = "comment"><b>' + parts[0] + ':</b> ' + parts.slice(1).join(': ') + '</div>';
         }
         var commentInput = currentUser
-            ? '<div class = "comment-row"><input type = "text" id = "ci-' + p.id + '" placeholder = "add a comment..." onkeydown="if(event.key===\'Enter\')addComment(' + p.id + ')"><button onclick="addComment(' + p.id + ')">Send</button></div>'
+            ? '<div class = "comment-row"><input type = "text" id = "ci-' + p.id + '" placeholder = "add a comment..." onkeydown="if(event.key===\'Enter\')addComment(\'' + p.id + '\')"><button onclick="addComment(\'' + p.id + '\')">Send</button></div>'
             : '';
         return (
             '<div class = "box" style = "padding: 0; overflow: hidden">' +
@@ -384,9 +384,9 @@ var defaultUsers = [
                     '<div style = "font-size: 13px; line-height: 1.6">' + p.text + '</div>' +
                     '<div>' +
                         
-                        '<button class = "action-btn' + (liked ? ' active' : '') + '" onclick = "toggleLike(' + p.id + ')">' + (liked ? '❤️' : '🤍') + ' ' + p.likes + '</button>' +
-                        '<button class = "action-btn' + (bookmarked ? ' active' : '') + '" onclick = "toggleBookmark(' + p.id + ')">' + (bookmarked ? '🔖 saved' : '🔖 save') + '</button>' +
-                    '</div>' +
+                        '<button class="action-btn' + (liked ? ' active' : '') + '" onclick="toggleLike(\'' + p.id + '\')">' + (liked ? '❤️' : '🤍') + ' ' + p.likes + '</button>' +
+                        '<button class="action-btn' + (bookmarked ? ' active' : '') + '" onclick="toggleBookmark(\'' + p.id + '\')">' + (bookmarked ? '🔖 saved' : '🔖 save') + '</button>'+
+                     '</div>' +
                     '<div style = "border-top: 1px solid #eae8e1; margin-top: 10px; padding-top: 10px">' + commentsHTML + commentInput + '</div>' +
                 '</div>' +
             '</div>'
