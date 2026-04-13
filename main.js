@@ -10,6 +10,12 @@
     doc,
     setDoc
     } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+    import {
+        getStorage,
+        ref,
+        uploadBytes,
+        getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -28,6 +34,7 @@
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
 
 
@@ -229,8 +236,20 @@ var defaultUsers = [
         var text = document.getElementById('newText').value.trim();
         if (!text || !currentUser) return;
         var cat = document.getElementById('newCategory').value;
+        var imageInput = document.getElementById('newImage');
+        var file = imageInput.files[0];
+
+        var imageUrl = nextImg(cat);
+
+        if (file) {
+            var filePath = "posts/" + Date.now() + "-" + file.name;
+            var imageRef = ref(storage, filePath);
+
+            await uploadBytes(imageRef, file);
+            imageUrl = await getDownloadURL(imageRef);
+        }
         
-        var newPost ={ user: currentUser, category: cat, text: text, likes: 0, likedBy: [], bookmarkedBy: [], comments: [], img: nextImg(cat) };
+        var newPost ={ user: currentUser, category: cat, text: text, likes: 0, likedBy: [], bookmarkedBy: [], comments: [], img: imageUrl };
 
         const docRef = await addDoc(collection(db, "posts"), newPost);  
 
@@ -240,6 +259,7 @@ var defaultUsers = [
         });
 
         document.getElementById('newText').value = '';
+        imageInput.value = '';
         saveData();
         renderFeed();
             
