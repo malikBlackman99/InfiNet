@@ -230,9 +230,9 @@ var defaultUsers = [
         if (!text || !currentUser) return;
         var cat = document.getElementById('newCategory').value;
         
-        var newPost ={ id: nextId++, user: currentUser, category: cat, text: text, likes: 0, liked: false, bookmarked: false, comments: [], img: nextImg(cat) };
+        var newPost ={ user: currentUser, category: cat, text: text, likes: 0, likedBy: [], bookmarkedBy: [], comments: [], img: nextImg(cat) };
 
-        var docRef = addDoc(collection(db, "posts"), newPost);  
+        const docRef = awaitaddDoc(collection(db, "posts"), newPost);  
 
         posts.unshift({
             id: docRef.id,
@@ -364,8 +364,8 @@ var defaultUsers = [
                     '<div style = "font-size: 13px; line-height: 1.6">' + p.text + '</div>' +
                     '<div>' +
                         
-                        '<button class = "action-btn' + (p.likedBy ? ' active' : '') + '" onclick = "toggleLike(' + p.id + ')">' + (p.likedBy ? '❤️' : '🤍') + ' ' + p.likes + '</button>' +
-                        '<button class = "action-btn' + (p.bookmarkedBy ? ' active' : '') + '" onclick = "toggleBookmark(' + p.id + ')">' + (p.bookmarkedBy ? '🔖 saved' : '🔖 save') + '</button>' +
+                        '<button class = "action-btn' + (liked ? ' active' : '') + '" onclick = "toggleLike(' + p.id + ')">' + (liked ? '❤️' : '🤍') + ' ' + p.likes + '</button>' +
+                        '<button class = "action-btn' + (bookmarked ? ' active' : '') + '" onclick = "toggleBookmark(' + p.id + ')">' + (bookmarked ? '🔖 saved' : '🔖 save') + '</button>' +
                     '</div>' +
                     '<div style = "border-top: 1px solid #eae8e1; margin-top: 10px; padding-top: 10px">' + commentsHTML + commentInput + '</div>' +
                 '</div>' +
@@ -399,6 +399,7 @@ var defaultUsers = [
     window.toggleLike = toggleLike;
     window.toggleBookmark = toggleBookmark;
     window.addComment = addComment;
+    window.renderFeed = renderFeed;
 
 
 
