@@ -1,6 +1,5 @@
 // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
 
   import {
     getFirestore,
@@ -8,8 +7,9 @@
     getDocs,
     addDoc,
     updateDoc,
-    doc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    doc,
+    setDoc
+    } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -27,7 +27,7 @@
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+  const db = getFirestore(app);
 
 
 
@@ -36,8 +36,7 @@ var defaultUsers = [
     { username: "xlia0", email: "xlia0@mail.com",password: "pass123" }
     
 ];
-    var currentUser = null;
-    var nextId = 21;
+    
 
     var categoryImages = {
         travel: [
@@ -72,15 +71,8 @@ var defaultUsers = [
         ]
     };
 
-    var imgIndexes = { travel: 0, food: 0, nature: 0, photography: 0, lifestyle: 0 };
 
-    function nextImg(cat) {
-        var arr = categoryImages[cat];
-        var url = arr[imgIndexes[cat] % arr.length];
-        imgIndexes[cat]++;
-        return url;
-    }
-
+    
     var defaultPosts = [
         { id:1,  user:"_xlia0.o",       category:"travel",      text:"golden hour over the valley 🌿 #travel #photography",                 likes:24, liked:false, bookmarked:false, comments:["User143: Comment here!", "loveStay: Nah, comment there."], img: categoryImages.travel[0] },
         { id:6,  user:"travelwithkai",  category:"travel",      text:"found this hidden waterfall on a hike 🌊 worth every step",            likes:52, liked:false, bookmarked:false, comments:["nomad.co: where is this?!", "kai_world: Dominica!"],         img: categoryImages.travel[1] },
@@ -109,7 +101,7 @@ var defaultUsers = [
     var currentUser = localStorage.getItem("inscape_current_user") || null;
     var seededKey = "inscape_seeded_firebase";
 
-    imgIndexes = { travel: 0, food: 0, nature: 0, photography: 0, lifestyle: 0 };
+    var imgIndexes = { travel: 0, food: 0, nature: 0, photography: 0, lifestyle: 0 };
 
     function nextImg(cat) {
         const arr = categoryImages[cat];
@@ -139,10 +131,12 @@ var defaultUsers = [
             var user = users[i];
            if ((user.username === u || user.email === u) && user.password === p) {
                  match = user;
-        }
+                 break;
+            }
         }
         if (match) {
             currentUser = match.username;
+            document.getElementById("loginErr").style.display = "none";
             hide('loginModal');
             saveData();
             updateUI();
@@ -159,8 +153,20 @@ var defaultUsers = [
         var c = document.getElementById('regConfirm').value;
         if (p !== c) { document.getElementById('regErr').style.display = 'block'; return; }
         if (!u || !e) return;
-        users.push({ username: u,email: e, password: p });
+        const exists = users.some((user) => user.username === u || user.email === e);
+        if (exists) {
+            document.getElementById("regErr").textContent = "Username or email already exists.";
+            document.getElementById("regErr").style.display = "block";
+            return;
+        }
+
+        document.getElementById("regErr").textContent = "Passwords do not match.";
+        document.getElementById("regErr").style.display = "none";
+
+        users.push({ username: u, email: e, password: p });
         currentUser = u;
+
+
         hide('registerModal');
         saveData();
         updateUI();
@@ -219,7 +225,7 @@ var defaultUsers = [
        renderFeed();
     }
 
-    function createPost() {
+    async function createPost() {
         var text = document.getElementById('newText').value.trim();
         if (!text || !currentUser) return;
         var cat = document.getElementById('newCategory').value;
@@ -324,8 +330,8 @@ var defaultUsers = [
     function makeCard(p) {
         var initials = p.user.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase();
         var comments = p.comments || [];;
-        var likedBy = post.likedBy || [];
-        var bookmarkedBy = post.bookmarkedBy || [];
+        var likedBy = p.likedBy || [];
+        var bookmarkedBy = p.bookmarkedBy || [];
         var liked = currentUser ? likedBy.includes(currentUser) : false;
         var bookmarked = currentUser ? bookmarkedBy.includes(currentUser) : false;
         var commentsHTML = '';
@@ -358,8 +364,8 @@ var defaultUsers = [
                     '<div style = "font-size: 13px; line-height: 1.6">' + p.text + '</div>' +
                     '<div>' +
                         
-                        '<button class = "action-btn' + (p.liked ? ' active' : '') + '" onclick = "toggleLike(' + p.id + ')">' + (p.liked ? '❤️' : '🤍') + ' ' + p.likes + '</button>' +
-                        '<button class = "action-btn' + (p.bookmarked ? ' active' : '') + '" onclick = "toggleBookmark(' + p.id + ')">' + (p.bookmarked ? '🔖 saved' : '🔖 save') + '</button>' +
+                        '<button class = "action-btn' + (p.likedBy ? ' active' : '') + '" onclick = "toggleLike(' + p.id + ')">' + (p.likedBy ? '❤️' : '🤍') + ' ' + p.likes + '</button>' +
+                        '<button class = "action-btn' + (p.bookmarkedBy ? ' active' : '') + '" onclick = "toggleBookmark(' + p.id + ')">' + (p.bookmarkedBy ? '🔖 saved' : '🔖 save') + '</button>' +
                     '</div>' +
                     '<div style = "border-top: 1px solid #eae8e1; margin-top: 10px; padding-top: 10px">' + commentsHTML + commentInput + '</div>' +
                 '</div>' +
@@ -374,13 +380,28 @@ var defaultUsers = [
     }
 
     async function init() {
-        savelData();
+        saveData();
         updateUI();
         
+
         await ensureUsersCollection();
         await seedPostsIfNeeded();
         await loadPostsFromFirebase();
     }
+
+    window.show = show;
+    window.hide = hide;
+    window.swap = swap;
+    window.login = login;
+    window.register = register;
+    window.logout = logout;
+    window.createPost = createPost;
+    window.toggleLike = toggleLike;
+    window.toggleBookmark = toggleBookmark;
+    window.addComment = addComment;
+
+
+
 
 init();
 
