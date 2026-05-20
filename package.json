@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build": "echo \"No build step needed for static site\""
+  },
   "dependencies": {
     "firebase": "^12.12.0"
   }
