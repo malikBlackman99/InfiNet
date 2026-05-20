@@ -198,8 +198,6 @@ var defaultUsers = [
     }
 
     async function seedPostsIfNeeded() {
-        if (localStorage.getItem(seededKey) === "true") return;
-
         const snapshot = await getDocs(collection(db, "posts"));
        if (!snapshot.empty) {
             localStorage.setItem(seededKey, "true");
@@ -227,6 +225,17 @@ var defaultUsers = [
        renderFeed();
     }
 
+    async function loadOrSeedPosts() {
+        try {
+            await seedPostsIfNeeded();
+            await loadPostsFromFirebase();
+        } catch (error) {
+            console.error("Could not load posts from Firebase:", error);
+            posts = defaultPosts.slice();
+            renderFeed();
+        }
+    }
+
     async function createPost() {
         var text = document.getElementById('newText').value.trim();
         if (!text || !currentUser) return;
@@ -244,7 +253,6 @@ var defaultUsers = [
         });
 
         document.getElementById('newText').value = '';
-        imageInput.value = '';
         saveData();
         renderFeed();
             
@@ -334,20 +342,21 @@ var defaultUsers = [
 
     function makeCard(p) {
         var initials = p.user.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase();
-        var comments = p.comments || [];;
+        var comments = p.comments || [];
         var likedBy = p.likedBy || [];
         var bookmarkedBy = p.bookmarkedBy || [];
         var liked = currentUser ? likedBy.includes(currentUser) : false;
         var bookmarked = currentUser ? bookmarkedBy.includes(currentUser) : false;
         var commentsHTML = '';
+        var postId = JSON.stringify(String(p.id));
 
         
-        for (var i = 0; i < p.comments.length; i++) {
-            var parts = p.comments[i].split(': ');
+        for (var i = 0; i < comments.length; i++) {
+            var parts = comments[i].split(': ');
             commentsHTML += '<div class = "comment"><b>' + parts[0] + ':</b> ' + parts.slice(1).join(': ') + '</div>';
         }
         var commentInput = currentUser
-            ? '<div class = "comment-row"><input type = "text" id = "ci-' + p.id + '" placeholder = "add a comment..." onkeydown="if(event.key===\'Enter\')addComment(\'' + p.id + '\')"><button onclick="addComment(\'' + p.id + '\')">Send</button></div>'
+            ? '<div class = "comment-row"><input type = "text" id = "ci-' + p.id + '" placeholder = "add a comment..." onkeydown="if(event.key===\'Enter\')addComment(' + postId + ')"><button onclick="addComment(' + postId + ')">Send</button></div>'
             : '';
         return (
             '<div class = "box" style = "padding: 0; overflow: hidden">' +
@@ -369,9 +378,9 @@ var defaultUsers = [
                     '<div style = "font-size: 13px; line-height: 1.6">' + p.text + '</div>' +
                     '<div>' +
                         
-                        '<button class="action-btn' + (liked ? ' active' : '') + '" onclick="toggleLike(\'' + p.id + '\')">' + (liked ? '❤️' : '🤍') + ' ' + p.likes + '</button>' +
-                        '<button class="action-btn' + (bookmarked ? ' active' : '') + '" onclick="toggleBookmark(\'' + p.id + '\')">' + (bookmarked ? '🔖 saved' : '🔖 save') + '</button>'+
-                     '</div>' +
+                        '<button class = "action-btn' + (liked ? ' active' : '') + '" onclick = "toggleLike(' + postId + ')">' + (liked ? '❤️' : '🤍') + ' ' + p.likes + '</button>' +
+                        '<button class = "action-btn' + (bookmarked ? ' active' : '') + '" onclick = "toggleBookmark(' + postId + ')">' + (bookmarked ? '🔖 saved' : '🔖 save') + '</button>' +
+                    '</div>' +
                     '<div style = "border-top: 1px solid #eae8e1; margin-top: 10px; padding-top: 10px">' + commentsHTML + commentInput + '</div>' +
                 '</div>' +
             '</div>'
@@ -389,9 +398,12 @@ var defaultUsers = [
         updateUI();
         
 
-        await ensureUsersCollection();
-        await seedPostsIfNeeded();
-        await loadPostsFromFirebase();
+        await loadOrSeedPosts();
+        try {
+            await ensureUsersCollection();
+        } catch (error) {
+            console.error("Could not sync users to Firebase:", error);
+        }
     }
 
     window.show = show;
