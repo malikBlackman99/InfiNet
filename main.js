@@ -226,13 +226,14 @@ var defaultUsers = [
     }
 
     async function loadOrSeedPosts() {
+        posts = defaultPosts.slice();
+        renderFeed();
+
         try {
             await seedPostsIfNeeded();
             await loadPostsFromFirebase();
         } catch (error) {
             console.error("Could not load posts from Firebase:", error);
-            posts = defaultPosts.slice();
-            renderFeed();
         }
     }
 
